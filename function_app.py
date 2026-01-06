@@ -1,5 +1,8 @@
 import azure.functions as func
 import logging
+import os
+from azure.identity import DefaultAzureCredential
+from azure.storage.blob import BlobServiceClient
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
@@ -46,3 +49,37 @@ def BlobTrigger(myblob: func.InputStream):
 #         f"Properties: {client.get_blob_properties()}\n"
 #         f"Blob content head: {client.download_blob().read(size=1)}"
 #     )
+
+
+@app.route(route="readblob", auth_level=func.AuthLevel.ANONYMOUS)
+def http_read_blob(req: func.HttpRequest) -> func.HttpResponse:
+    logging.info('Python HTTP trigger processing a request.')
+
+    # 1. Get the account URL (e.g., https://aaa.blob.core.windows.net)
+    # Best practice: Store this in an App Setting
+    account_url = os.environ.get("BLOB_STORAGE_ACCOUNT_URL")
+    container_name = "mycontainer"
+    blob_name = req.params.get('file')
+
+    if not blob_name:
+        return func.HttpResponse("Please pass a 'file' name in the query string", status_code=400)
+
+    try:
+        # 2. Setup Identity and Client
+        # This will use the Managed Identity in Azure
+        token_credential = DefaultAzureCredential()
+        
+        blob_service_client = BlobServiceClient(
+            account_url, 
+            credential=token_credential
+        )
+
+        # 3. Read the blob data
+        blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+        blob_data = blob_client.download_blob().readall()
+
+        return func.HttpResponse(blob_data, mimetype="application/octet-stream")
+
+    except Exception as e:
+        logging.error(f"Error reading blob: {e}")
+        return func.HttpResponse(f"Failed to read blob: {str(e)}", status_code=500)
