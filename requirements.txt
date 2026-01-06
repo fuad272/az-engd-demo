@@ -2,5 +2,6 @@
 # Ref: aka.ms/functions-azure-monitor-python
 # azure-monitor-opentelemetry
 pytest
-pytest-cov
 azure-functions
+azure-storage-blob
+azure-identity
