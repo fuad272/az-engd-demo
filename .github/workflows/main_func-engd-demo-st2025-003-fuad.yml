@@ -36,6 +36,10 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+      
+      - name: Install dependencies
+        run: python -m pytest -q
+      
 
       # Optional: Add step to run tests here
 
